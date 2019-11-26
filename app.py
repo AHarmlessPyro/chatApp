@@ -22,7 +22,7 @@ async def ws():
 
 @app.route('/index')
 def index():
-    return "Hello, World!"
+    return render_template('item.html');
 
 
 @app.route('/<word>/<position>')

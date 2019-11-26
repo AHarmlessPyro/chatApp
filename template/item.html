@@ -1,0 +1,14 @@
+<html>
+
+<body>
+    <script>
+        var exampleSocket = new WebSocket(document.location.origin + '/ws');
+        exampleSocket.send("Hello");
+
+        exampleSocket.onmessage = function (event) {
+            console.log(event);
+        }
+    </script>
+</body>
+
+</html>
