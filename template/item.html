@@ -3,7 +3,8 @@
 <body>
     <script>
 
-        var websocketBase = document.location.origin.replace(/http(?:s.)/,'ws:')
+        var websocketBase = document.location.origin;
+        websocketBase = websocketBase.replace(/http(?:s.)/,'ws:');
 
         var exampleSocket = new WebSocket(websocketBase + '/ws');
         exampleSocket.send("Hello");
