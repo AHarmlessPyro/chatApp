@@ -1,1 +1,1 @@
-web: hypercorn app:app
+web: hypercorn app:app -bind:"$PORT"
