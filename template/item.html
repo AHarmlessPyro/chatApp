@@ -4,9 +4,9 @@
     <script>
 
         var websocketBase = document.location.origin;
-        websocketBase = websocketBase.replace(/http(?:s.)/,'ws:');
+        websocketBase = websocketBase.replace(/http(s?)/,'ws$1');
 
-        var exampleSocket = new WebSocket(websocketBase + '/ws');
+        var exampleSocket = new WebSocket(websocketBase);
         exampleSocket.send("Hello");
 
         exampleSocket.onmessage = function (event) {
