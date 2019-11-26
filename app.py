@@ -12,7 +12,13 @@ app.debug = True
 app.static_folder = 'static'
 app.static_url_path = 'static'
 app.config['TESTING'] = True
+from quart import websocket
 
+@app.websocket('/ws')
+async def ws():
+    while True:
+        data = await websocket.receive()
+        await websocket.send(f"echo {data}")
 
 @app.route('/index')
 def index():
