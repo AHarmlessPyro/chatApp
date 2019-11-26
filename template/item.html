@@ -4,14 +4,19 @@
     <script>
 
         var websocketBase = document.location.origin;
-        websocketBase = websocketBase.replace(/http(s?)/,'ws$1');
+        websocketBase = websocketBase.replace(/http(s?)/, 'ws$1');
 
         var exampleSocket = new WebSocket(websocketBase);
-        exampleSocket.send("Hello");
+        exampleSocket.onopen(
+            (event) => {
+                console.log(`event was ${event}`);
+                exampleSocket.send("Hello");
+            }
+        )
 
-        exampleSocket.onmessage = function (event) {
-            console.log(event);
-        }
+        exampleSocket.onmessage(
+            (event) => console.log(event)
+        )
     </script>
 </body>
 
