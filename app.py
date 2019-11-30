@@ -1,71 +1,116 @@
-from quart import Quart
-from quart import render_template
+from flask import Flask
+from flask import request
+from flask import render_template
+from flask import g
+from flask import current_app
+from flask_socketio import SocketIO, join_room, leave_room, emit
 import re
 import os
 import requests
+import uuid
+from extras import FixedArray
 
-#from werkzeug.debug import DebuggedApplication
-app = Quart(__name__, template_folder="template")
+app = Flask(__name__, template_folder="template")
+app.secret_key = "thisIsASecretKey"
+socketio = SocketIO(app)
+ROOMS = {}
+CLIENTS = 0
 
-app.env = 'development'
-app.debug = True
-app.static_folder = 'static'
-app.static_url_path = 'static'
-app.config['TESTING'] = True
-from quart import websocket
+@app.route('/')
+def base():
+    return "Hello World!"
 
-@app.websocket('/ws')
-async def ws():
-    while True:
-        data = await websocket.receive()
-        await websocket.send(f"echo {data}")
+
+@socketio.on('connect')
+def connected():
+    print("%s connected")
+    add_clients()
+    cl = get_clients()
+    emit('connected', 'Connected client count ' + str(cl), broadcast=True)
+
+
+@socketio.on('disconnect')
+def disconnect():
+    print("A client disconnected")
+    remove_clients()
+    cl = get_clients()
+    emit('disconnected', ' A client disconnected with remaining count ' +
+         str(cl), broadcast=True)
+
 
 @app.route('/index')
 def index():
-    return render_template('item.html');
+    return render_template('mainChat.html')
 
 
-@app.route('/<word>/<position>')
-def ret(word, position):
-    response = requests.get('https://www.dictionaryapi.com/api/v3/references/collegiate/json/' +
-                            word+'?key=721730b3-70ba-4169-9a3c-d170a41d49c3')
-    val = response.json()
-    print(val[0])
-
-    list_item_ret = ""
-
-    try:
-        if(val[0]['shortdef'] == None or len(val[0]['shortdef']) == 0):
-            print("Hello")
-            item = dict()
-            item['shortdef'] = ['Word doesn\'t exist in Webster Dictionary']
-            return render_template('secondaryPage.html', list_item=item, Word=word)
-    except:
-        print("No Hello")
-        item = dict()
-        item['shortdef'] = ['Word doesn\'t exist in Webster Dictionary']
-        return render_template('secondaryPage.html', list_item=item, Word=word)
-    print("Pass through")
-    return render_template('secondaryPage.html', list_item=val[0], Word=word)
+@socketio.on('create')
+def creation(data):
+    emit('hello', {'boo': 'boo'})
 
 
-@app.route('/')
-def testTemplateNesting():
-    return render_template('MainBody.html')
+@socketio.on('message')
+def message(data):
+    emit('broadcast', "Broadcasting " + message + "to everyone")
 
 
-@app.template_filter('search')
-def match(inputStr):
-    try:
-        regex = r"[^\|\{\}\'][a-zA-Z \,]+[^\|\{\}\']"
-        matches = re.findall(regex, inputStr, re.MULTILINE)
-        print(matches)
-        if(matches == None or matches == []):
-            print("Formatting not accepted" + str(inputStr))
-            return 'Input format weird.Can\'t process input ' + input
-        else:
-            print('DONE')
-            return str(matches[0])
-    except:
-        print("Formatting not accepted" + str(inputStr))
-        return 'Input format weird.Can\'t process input \n' + str(inputStr)
+@socketio.on('createRoom')
+def createRoom():
+    addedRoom = add_rooms()
+    print(addedRoom)
+    emit('NewRoom', "Added a room " + str(addedRoom))
+
+
+@socketio.on('messagePublic')
+def sendMessagePublic(data):
+    print(data)
+    emit('newMessage', data, broadcast=True)
+
+
+def get_rooms():
+    rooms = getattr(current_app, '_rooms', None)
+    if rooms is None:
+        current_app._rooms = {}
+    return current_app._rooms
+
+
+def add_rooms():
+    rooms = get_rooms()
+    rooms[uuid.uuid4()] = []
+    setattr(current_app, "_rooms", rooms)
+    return rooms
+
+
+def remove_rooms(uuidToRemove):
+    rooms = get_rooms()
+    del rooms[uuidToRemove]
+    setattr(current_app, "_rooms", rooms)
+    return rooms
+
+
+def get_clients():
+    clients = getattr(current_app, '_clients', None)
+    print("clients connected are "+str(clients))
+    if clients is None:
+        current_app._clients = 0
+    return current_app._clients
+
+
+def add_clients():
+    print("adding clients")
+    clients = get_clients()
+    clients = clients + 1
+    setattr(current_app, "_clients", clients)
+    return clients
+
+
+def remove_clients():
+    clients = get_clients()
+    clients = clients - 1
+    setattr(current_app, "_clients", clients)
+    return clients
+
+
+if __name__ == '__main__':
+    socketio.run(app, debug=True)
+    print("Hello")
+    setattr(current_app, "_UUIDList", [])
