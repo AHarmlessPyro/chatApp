@@ -1,0 +1,84 @@
+{% extends "index.html" %}
+{% block content %}
+<div id="LoginElement">
+    <style>
+        :root {
+            --mainBackground: var(--white);
+            --sideBackground:
+                /*var(--gray-dark)*/
+                var(--dangar);
+            --errorTextColor: var(--danger);
+        }
+
+        .arrow_box {
+            position: relative;
+            background: var(--mainBackground);
+            border: 4px solid var(--sideBackground);
+            padding: 3px;
+            margin-left: 30px;
+        }
+
+        .arrow_box:after,
+        .arrow_box:before {
+            right: 100%;
+            top: 50%;
+            border: solid transparent;
+            content: " ";
+            height: 0;
+            width: 0;
+            position: absolute;
+            pointer-events: none;
+        }
+
+        .arrow_box:after {
+            border-color: rgba(136, 183, 213, 0);
+            border-right-color: var(--mainBackground);
+            border-width: 10px;
+            margin-top: -10px;
+        }
+
+        .arrow_box:before {
+            border-color: rgba(194, 225, 245, 0);
+            border-right-color: var(--sideBackground);
+            border-width: 15px;
+            margin-top: -15px;
+        }
+    </style>
+    <h1>Sign In</h1>
+    <hr>
+    {% with messages = get_flashed_messages() %}
+    {% if messages %}
+    <ul>
+        {% for message in messages %}
+        <li>{{ message }}</li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    {% endwith %}
+    <div style="display: grid; justify-content: center;">
+        <form action="" method="post" novalidate>
+            {{ form.hidden_tag() }}
+            <p>
+                {{ form.username.label }}<br>
+                {{ form.username(size=32) }}
+                {% for error in form.username.errors %}
+                <span style="color: var(--errorTextColor);" class="arrow_box">[{{ error }}]</span>
+                {% endfor %}
+            </p>
+            <p>
+                {{ form.password.label }}<br>
+                {{ form.password(size=32) }}
+                {% for error in form.password.errors %}
+                <span style="color: var(--errorTextColor);" class="arrow_box">[{{ error }}]</span>
+                {% endfor %}
+            </p>
+            <p>{{ form.remember_me() }} {{ form.remember_me.label }}</p>
+            <p> {{ form.submit(style="width:100%") }} </p>
+        </form>
+        <a href="{{url_for('main.register')}}">
+            <button onclick="location.href = `{{url_for('main.register')}}`" style="width: 100%;">Register New
+                User? </button>
+        </a>
+    </div>
+</div>
+{% endblock %}

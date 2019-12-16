@@ -3,7 +3,6 @@
 <div style="display: grid;justify-items: center;overflow: hidden;">
     <style>
         .senderName {
-
             top: 18px;
             position: relative;
             background: white;
@@ -15,8 +14,6 @@
             border-radius: 40px;
             padding: 0em 1em;
             margin: 10px 0px;
-            /* padding-top: 4px; */
-            /* justify-self: flex-end; */
             word-break: break-word;
             max-width: 60vw;
         }
@@ -47,18 +44,19 @@
             border-radius: 20px;
             min-height: 2vw;
             display: grid;
+            grid-template-columns: calc(95% - 20px) 5%;
         }
 
         #textArea {
             justify-items: center;
-            width: 98%;
+            width: 95%;
             height: 90%;
-            align-items: center;
             align-self: center;
-            justify-self: center;
+            justify-self: flex-start;
             border: none;
             resize: none;
-            scrollbar-width: thin;
+            margin-left: 10px;
+            margin-right: 10px;
         }
 
         #textArea:focus {
@@ -74,48 +72,83 @@
     <!-- <input type="text" id="messageField"> -->
     <div id="messageField">
         <textarea id="textArea"></textarea>
+        <button id="openGIFPanel" onclick="openGIFPanel()" style="margin: 5%;
+        background-color: transparent;
+        border-color: rgba(255,255,255,0.5);">GIF</button>
     </div>
-    <!-- <p>Some sample code to make sure Flask-SocketIO works...</p>
-    <button onclick=" createGame()">Create Game</button>
-    <p>Some sample code to make sure Create Rooms...</p>
-    <button onclick="createRooms()">Create Room</button>
-    <p>Some sample code to make sure get rooms...</p>
-    <button onclick="createGame()">Get rooms</button>
-    -->
-    <script type="text/javascript" src="//cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
-    <script type="text/javascript" charset="utf-8">
+    <div>
+        <input type="text" id="gif" />
+    </div>
+    <div id="appendGif">
 
+    </div>
+    <script type="text/javascript"
+        src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+    <script type="text/javascript" charset="utf-8">
+        // Create socket-io object with websocket transport enforced
+        var socket = io({ transports: ['websocket'] });
+
+        // Connect to socket at a location
+        socket.connect('http://' + document.domain + ':' + location.port);
+
+        // sender name is randomised. After login, should use login name
         var sender = (Math.random() * 100000).toString(16);
         console.log("Sender is " + sender);
 
-        document.getElementById('textArea').addEventListener('keydown', (event) => {
-            let textElement = document.getElementById('textArea');
-            if (event.key == "Enter" && !(event.shiftKey || event.ctrlKey || event.altKey)) {
-                event.preventDefault();
-                socket.emit('messagePublic', { message: textElement.value, sender: sender })
-                textElement.value = "";
-            }
-        })
-
-        var socket = io({ transports: ['websocket'] });
-        socket.connect('http://' + document.domain + ':' + location.port);
-        // verify our websocket connection is established
+        // Socket message Events
         socket.on('connect', function () {
-            console.log('Websocket connected!');
+            sendMessage(`${sender} Joined the lobby`, "System");
         });
 
-        // message handler for the 'join_room' channel
-        socket.on('hello', function (msg) {
+        socket.on('Log', function (msg) {
             console.log(msg);
         });
+
+        socket.on('returnGif', function (msg) {
+            console.log(msg);
+            document.getElementById('appendGif').innerHTML = "";
+            msg.forEach(element => {
+                document.getElementById('appendGif').insertAdjacentHTML('beforeend',
+                    `<img src = ${element.preview_gif.url} originalSource="${+element.original.url}" onclick="sendMessage('${element.original.url}')"></img>`);
+                //element.
+            });
+        })
 
         socket.on('NewRoom', function (msg) {
             console.log(msg);
         })
-        // createGame onclick - emit a message on the 'create' channel to 
-        // create a new game with default parameters
 
         socket.on('newMessage', (event) => {
+            console.log(event);
+            let align_side = "flex-start";
+            let additionalCSS = "";
+            if (event.sender == sender) {
+                console.log("sender was me");
+                align_side = "flex-end";
+            } else if (event.sender == "System") {
+                align_side = 'center'
+            } else {
+                console.log("sender was someone else");
+            }
+
+            let actualMessage = event.message.replace(/\n/gm, '<br>');
+            document.getElementById('messages').insertAdjacentHTML('beforeend',
+                `<div style="justify-self:${align_side};display:grid">
+                    <div style="justify-self:${align_side};${align_side == "flex-start" ? "margin-left: 0.5vw;" : ("align_side" == "flex-end") ? "margin-right: 0.5vw;" : ""} ${additionalCSS}" class="senderName">
+                        ${event.sender}
+                    </div>
+                    <div style="min-width:${(event.sender.toString().length + 2) * 10}px" class="textBox">
+                        <div>
+                            ${actualMessage}
+                        </div>
+                    </div>
+                </div>`
+            );
+            var objDiv = document.getElementById("messages");
+            objDiv.scrollTop = objDiv.scrollHeight;
+        })
+
+        socket.on('newImage', (event) => {
             console.log(event);
             let align_side = "flex-start";
             if (event.sender == sender) {
@@ -127,9 +160,67 @@
 
             let actualMessage = event.message.replace(/\n/gm, '<br>');
             document.getElementById('messages').insertAdjacentHTML('beforeend',
-                `<div style="justify-self:${align_side};display:grid"><div style="justify-self:${align_side};margin-${align_side == "flex-start" ? "left" : "right"}: 0.5vw;" class="senderName">${event.sender}</div><div style="min-width:${event.sender.toString().length + 2}em" class="textBox"><div>${actualMessage}<div></div></div>`
+                `<div style="justify-self:${align_side};display:grid">
+                    <div style="justify-self:${align_side};margin-${align_side == "flex-start" ? "left" : "right"}: 1.8vw;" class="senderName">${event.sender}</div>
+                    <div style="padding:15px;min-width:${(event.sender.toString().length + 2) * 10}px" class="textBox">
+                        <img style="max-width:40vw" src='${actualMessage}'/>
+                    </div>
+                </div>`
+            );
+            var objDiv = document.getElementById("messages");
+            objDiv.scrollTop = objDiv.scrollHeight;
+        })
+
+        socket.on('newURL', (event) => {
+            console.log(event);
+            let align_side = "flex-start";
+            if (event.sender == sender) {
+                console.log("sender was me");
+                align_side = "flex-end";
+            } else {
+                console.log("sender was someone else");
+            }
+
+            let actualMessage = event.message.replace(/\n/gm, '<br>');
+            document.getElementById('messages').insertAdjacentHTML('beforeend',
+                `<div style="justify-self:${align_side};display:grid">
+                    <div style="justify-self:${align_side};margin-${align_side == "flex-start" ? "left" : "right"}: 1.8vw;" class="senderName">${event.sender}</div>
+                    <div style="padding:15px;min-width:${(event.sender.toString().length + 2) * 10}px" class="textBox">
+                        <a href='${actualMessage}'>${actualMessage}</a>
+                    </div>
+                </div>`
             );
         })
+
+        socket.on('connected', event => console.log(event));
+
+        socket.on('disconnected', event => console.log(event));
+
+        // UI events
+        document.getElementById('gif').addEventListener('keydown', (event) => {
+            let textElement = document.getElementById('gif');
+            if (event.key == "Enter" && !(event.shiftKey || event.ctrlKey || event.altKey)) {
+                event.preventDefault();
+                socket.emit('gif', { Query: textElement.value, previousEndAt: 0, countNext: 25 });
+                textElement.value = "";
+            }
+        });
+
+        document.getElementById('textArea').addEventListener('keydown', (event) => {
+            let textElement = document.getElementById('textArea');
+            if (event.key == "Enter" && !(event.shiftKey || event.ctrlKey || event.altKey)) {
+                event.preventDefault();
+                // socket.emit('messagePublic', { message: textElement.value, sender: sender })
+                sendMessage(textElement.value)
+                textElement.value = "";
+            }
+        });
+
+        // Misc functions
+
+        function sendMessage(message, send_source = sender) {
+            socket.emit('messagePublic', { message: message, sender: send_source });
+        }
 
         function createGame() {
             console.log('Creating game...');
@@ -145,11 +236,6 @@
             socket.emit('createRoom')
         }
 
-        socket.on('connected', event => conn_disconn(event))
-        socket.on('disconnected', event => conn_disconn(event))
-        function conn_disconn(event) {
-            console.log(event);
-        }
     </script>
 </div>
 {% endblock %}

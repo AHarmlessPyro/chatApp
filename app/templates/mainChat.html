@@ -1,0 +1,317 @@
+{% extends "index.html" %}
+{% block content %}
+<div style="display: grid;justify-items: center;overflow: hidden;">
+
+    <div id="messages">
+    </div>
+    <!-- <input type="text" id="messageField"> -->
+    <div id="messageField">
+        <textarea id="textArea" placeholder="Messages Go Here"></textarea>
+        <button id="openGIFPanel" onclick="openGIFPanel()" style="margin: 5%;
+        background-color: transparent;
+        border-color: rgba(255,255,255,0.5);">GIF</button>
+    </div>
+</div>
+
+<div style="width: calc(100vw - 45px);
+background-color: rgba(100,100,100,0.95);
+max-height: calc(90vh + 11px);
+display: grid;
+visibility: hidden;
+grid-template-rows: 75px auto;
+margin-top: 2vh;
+position: absolute;
+top: 36px;
+transition: opacity 1s;
+opacity: 0.0;" id="gifPanel">
+    <div style="
+    /* font-size: 30px; */
+    display: grid;
+    margin: 20px;
+    grid-template-columns: 90% auto;
+    /* column-gap: 10px; */
+    max-height: 35px;
+    ">
+        <div>
+            <input id="gif" style="display: grid;
+            width: 100%;
+            font-size: 15px;
+            height: 100%;">
+        </div>
+        <div style="cursor: pointer; justify-self: flex-end; font-size: 23px;" onclick="closeGifPanel()">
+            &#10005;
+        </div>
+    </div>
+    <div style="
+        padding: 10px;
+        display: grid;
+        grid-template-columns: 23.75% 23.75% 23.75% 23.75%;
+        column-gap: 3.333%;
+        row-gap: 10px;
+        height: calc(90vh - 75px);" id="appendGif">
+    </div>
+</div>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+<script type="text/javascript" charset="utf-8">
+
+
+    var socket;
+    var sender;
+    var sender_id;
+    // sender name is randomised. After login, should use login name
+
+    fetch('/session').then(
+        response => {
+            console.log(response);
+            response.json().then(json => {
+                console.log(json);
+                const jsonDat = json;
+                sender = json.userName;//(Math.random() * 100000).toString(16);
+                sender_id = json.user;
+                console.log("Sender is " + sender);
+
+                // Create socket-io object with websocket transport enforced
+                socket = io();//{ transports: ['polling'] }//{ transports: ['websocket'] }
+
+                events();
+
+                // Connect to socket at a location
+                socket.connect('http://' + document.domain + ':' + location.port);
+            })
+        }
+    );
+
+    function events() {
+        // Socket message Events
+        socket.on('connect', function () {
+            sendMessage(`${sender} Joined the lobby`, "System", -1);
+        });
+
+        socket.on('Log', function (msg) {
+            console.log(msg);
+        });
+
+        socket.on('returnGif', function (msg) {
+            console.log(msg);
+            document.getElementById('appendGif').innerHTML = "";
+            count = 0;
+            msg.forEach(element => {
+                document.getElementById('appendGif').insertAdjacentHTML('beforeend',
+                    `<img src = ${element.preview_gif.url} originalSource="${element.original.url}" onclick="sendMessage('${element.original.url}');closeGifPanel()" style='justify-self: ${(count % 2 == 0) ? "flex-end" : "flex-start"};' class="gifImage"></img>`);
+                count++;
+            });
+        })
+
+        socket.on('NewRoom', function (msg) {
+            console.log(msg);
+        })
+
+        socket.on('newMessage', (event) => {
+            console.log(event);
+            let align_side = "flex-start";
+            let additionalCSS = "";
+            if (event.sender == sender) {
+                console.log("sender was me");
+                align_side = "flex-end";
+            } else if (event.sender == "System") {
+                align_side = 'center'
+            } else {
+                console.log("sender was someone else");
+            }
+
+            let actualMessage = event.message.replace(/\n/gm, '<br>');
+            document.getElementById('messages').insertAdjacentHTML('beforeend',
+                `<div style="justify-self:${align_side};display:grid">
+                    <div style="justify-self:${align_side};${align_side == "flex-start" ? "margin-left: 0.5vw;" : ("align_side" == "flex-end") ? "margin-right: 0.5vw;" : ""} ${additionalCSS}" class="senderName">
+                        ${event.sender}
+                    </div>
+                    <div style="min-width:${(event.sender.toString().length + 2) * 10}px" class="textBox">
+                        <div>
+                            ${actualMessage}
+                        </div>
+                    </div>
+                </div>`
+            );
+            scrollToBottom();
+        })
+
+        socket.on('newImage', (event) => {
+            console.log(event);
+            let align_side = "flex-start";
+            if (event.sender == sender) {
+                console.log("sender was me");
+                align_side = "flex-end";
+            } else {
+                console.log("sender was someone else");
+            }
+
+            //let actualMessage = event.message.replace(/\n/gm, '<br>');
+            document.getElementById('messages').insertAdjacentHTML('beforeend',
+                `<div style="justify-self:${align_side};display:grid">
+                    <div style="justify-self:${align_side};margin-${align_side == "flex-start" ? "left" : "right"}: 1.8vw;" class="senderName">${event.sender}</div>
+                    <div style="padding:15px;min-width:${(event.sender.toString().length + 2) * 10}px" class="textBox">
+                        <img style="max-width:40vw" src='${event.actualURL}' onload='${scrollToBottom()}'/>
+                    </div>
+                </div>`
+            );
+        })
+
+        socket.on('newURL', (event) => {
+            console.log(event);
+            let align_side = "flex-start";
+            if (event.sender == sender) {
+                console.log("sender was me");
+                align_side = "flex-end";
+            } else {
+                console.log("sender was someone else");
+            }
+
+            let actualMessage = event.message.replace(/\n/gm, '<br>');
+            document.getElementById('messages').insertAdjacentHTML('beforeend',
+                `<div style="justify-self:${align_side};display:grid">
+                    <div style="justify-self:${align_side};margin-${align_side == "flex-start" ? "left" : "right"}: 1.8vw;" class="senderName">${event.sender}</div>
+                    <div style="padding:15px;min-width:${(event.sender.toString().length + 2) * 10}px" class="textBox">
+                        <a href='${event.actualURL}'>${actualMessage}</a>
+                    </div>
+                </div>`
+            );
+            scrollToBottom();
+        })
+
+        socket.on('connected', event => console.log(event));
+
+        socket.on('disconnected', event => console.log(event));
+
+        // UI events
+        document.getElementById('gif').addEventListener('keydown', (event) => {
+            let textElement = document.getElementById('gif');
+            if (event.key == "Enter" && !(event.shiftKey || event.ctrlKey || event.altKey)) {
+                event.preventDefault();
+                socket.emit('gif', { Query: textElement.value, previousEndAt: 0, countNext: 24 });
+                textElement.value = "";
+            }
+        });
+
+        document.getElementById('textArea').addEventListener('keydown', (event) => {
+            let textElement = document.getElementById('textArea');
+            if (event.key == "Enter" && !(event.shiftKey || event.ctrlKey || event.altKey)) {
+                event.preventDefault();
+                // socket.emit('messagePublic', { message: textElement.value, sender: sender })
+                sendMessage(textElement.value)
+                textElement.value = "";
+            }
+        });
+    }
+    // Misc functions
+
+    function sendMessage(message, send_source = sender, send_id = sender_id) {
+        socket.emit('messagePublic', { message: message, sender: send_source, id: send_id });
+    }
+
+    function createGame() {
+        console.log('Creating game...');
+        socket.emit('create', { size: 'normal', teams: 2, dictionary: 'Simple' });
+    }
+
+    function getRooms() { }
+
+    function createRooms() {
+        console.log("Creating rooms");
+        socket.emit('createRoom')
+    }
+
+    function openGIFPanel() {
+        document.getElementById('gifPanel').style.setProperty("visibility", "visible");
+        document.getElementById('gifPanel').style.setProperty("opacity", "0.95");
+    }
+
+    function closeGifPanel() {
+        document.getElementById('gifPanel').style.setProperty("opacity", "0.0");
+        window.setTimeout(() => {
+            document.getElementById('gifPanel').style.setProperty("visibility", "hidden");
+        }, 1010)
+    }
+
+    function scrollToBottom() {
+        var objDiv = document.getElementById("messages");
+        objDiv.scrollTop = objDiv.scrollHeight;
+    }
+</script>
+<style>
+    .gifImage {
+        height: 100%;
+        /* max-width: 47.5%; */
+    }
+
+    .senderName {
+        top: 18px;
+        position: relative;
+        background: white;
+    }
+
+    .textBox {
+        max-width: max-content;
+        border: 2px solid black;
+        border-radius: 40px;
+        padding: 0em 1em;
+        margin: 10px 0px;
+        word-break: break-word;
+        max-width: 60vw;
+    }
+
+    #messages {
+        border: 2px solid;
+        border-radius: 20px;
+        min-width: 90vw;
+        max-width: 90vw;
+        min-height: 80vh;
+        max-height: 80vh;
+        margin: 1vw 2vh;
+        padding: 1vw;
+        display: grid;
+        grid-template-rows: repeat(auto-fit, minmax(50px, max-content));
+        overflow-y: scroll;
+        overflow: -moz-scrollbars-none;
+        scrollbar-width: none;
+    }
+
+    #messages::-webkit-scrollbar {
+        width: 0px;
+    }
+
+    #messageField {
+        min-width: 90vw;
+        border: 2px solid black;
+        border-radius: 20px;
+        min-height: 2vh;
+        display: grid;
+        grid-template-columns: calc(95% - 20px) 5%;
+    }
+
+    #textArea {
+        justify-items: center;
+        width: 95%;
+        height: 90%;
+        align-self: center;
+        justify-self: flex-start;
+        border: none;
+        resize: none;
+        margin-left: 10px;
+        margin-right: 10px;
+        border: 2px transparent;
+        border-radius: 20px;
+    }
+
+    #textArea:not(:focus) {
+        background-color: rgba(10, 10, 10, 0.1);
+    }
+
+    #textArea:focus {
+        outline: none;
+    }
+
+    #textArea::-webkit-scrollbar {
+        width: 0px;
+    }
+</style>
+{% endblock %}

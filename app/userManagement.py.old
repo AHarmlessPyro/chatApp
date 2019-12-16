@@ -1,0 +1,11 @@
+from flask_login import LoginManager,UserMixin
+from . import login
+
+class User(UserMixin, object):
+    def __init__(self, id=None):
+        self.id = id
+
+
+@login.user_loader
+def load_user(id):
+    return User(id)
