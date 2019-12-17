@@ -8,11 +8,6 @@ from app.model import UserModel
 from app import db
 
 
-@main.route('/')
-def base():
-    return "Hello World!"
-
-
 @main.route('/room/<roomNumber>')
 def joinRoom(roomNumber):
     pass
@@ -21,14 +16,14 @@ def joinRoom(roomNumber):
 @main.route('/index')
 @login_required
 def index():
-    print(current_user)
-    print(current_user.username)
-    print(current_user.id)
+    session['isPrivate'] = False
     return render_template('mainChat.html')
 
 
+@main.route('/', methods=['GET', 'POST'])
 @main.route('/login', methods=['GET', 'POST'])
 def loginFunc():
+    session['isPrivate'] = False
     if current_user.is_authenticated:
         return redirect(url_for('main.index'))
     form = LoginForm()
@@ -102,10 +97,11 @@ def getUser(name):
 @login_required
 @main.route('/private')
 def createRoom():
-    render_template('create_room.html')
+    return render_template('join_room.html')
 
 
 @login_required
-@main.route('/private/<rooms>')
-def getRooms():
-    pass
+@main.route('/private/<room>')
+def getRooms(room):
+    session['isPrivate'] = True
+    return render_template('privateChat.html', room=room)

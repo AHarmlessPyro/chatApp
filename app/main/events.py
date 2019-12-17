@@ -22,6 +22,7 @@ CurrentRooms = []
 @socketio.on('connect')
 @authenticated_only
 def connected():
+    print(session['isPrivate'])
     print("%s connected")
     add_clients()
     cl = get_clients()
@@ -32,14 +33,15 @@ def connected():
         MessageModel.id.desc()).limit(10).all()
     messages = reversed(messages)
     # socketio.sleep(1)
-    for message in messages:
-        val = {
-            'message': message.body,
-            'sender': message.author.username,
-            'id': message.user_id
-        }
-        print(f'Sending message {val}')
-        sendMessageSpecific(val)
+    if not session['isPrivate']:
+        for message in messages:
+            val = {
+                'message': message.body,
+                'sender': message.author.username,
+                'id': message.user_id
+            }
+            print(f'Sending message {val}')
+            sendMessageSpecific(val)
     print(f'Current client is {current_user}')
     # emit('newMessage', {'message': f'Connected client count {str(cl)}', 'sender': 'System'}, broadcast=True)
 
@@ -79,21 +81,9 @@ def disconnect():
          str(cl), broadcast=True)
 
 
-@socketio.on('create')
-def creation(data):
-    emit('hello', {'boo': 'boo'})
-
-
 @socketio.on('message')
 def message(data):
     emit('broadcast', "Broadcasting " + message + "to everyone")
-
-
-@socketio.on('createRoom')
-def createRoom():
-    addedRoom = add_rooms()
-    print(addedRoom)
-    emit('NewRoom', "Added a room " + str(addedRoom))
 
 
 @socketio.on('messagePublic')
@@ -222,26 +212,32 @@ def sendMessageSpecific(data):
 
 
 @authenticated_only
-@socketio.on('create')
+@socketio.on('create_room')
 def create_room_New(data):
+    print(data)
     room = data['room']
     for checkRoom in CurrentRooms:
         if checkRoom['room'] == room:
-            emit("not-available")
+            emit("not_available")
             return
-    usernames = data['usernames']
+    usernames = [data['username'],
+                 UserModel.query.filter_by(id=current_user.id).first().username]
+
+    print(f'attempting to join room {room} accessible to {usernames}')
+
     CurrentRooms.append({'room': room, 'usernames': usernames, 'messages': []})
     emit('join_room')
     return
 
 
 @authenticated_only
-@socketio.on('join')
+@socketio.on('join_room')
 def join_room_New(data):
     room = data['room']
+    print(f'attempting to join room {room}')
     for checkRoom in CurrentRooms:
         if checkRoom['room'] == room:
-            emit("join")
+            emit("join_room")
             return
-    emit('not-available')
+    emit('not_available')
     return
