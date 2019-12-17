@@ -131,7 +131,7 @@ opacity: 0.0;" id="gifPanel">
             document.getElementById('messages').insertAdjacentHTML(event.placement ? 'afterbegin' : 'beforeend',
                 `<div style="justify-self:${align_side};display:grid">
                     <div style="justify-self:${align_side};${align_side == "flex-start" ? "margin-left: 0.5vw;" : ("align_side" == "flex-end") ? "margin-right: 0.5vw;" : ""} ${additionalCSS}" class="senderName">
-                        ${event.sender != "System" ? '<a href="/user/${event.sender}">${event.sender}</a>' : event.sender}
+                        ${event.sender != "System" ? `<a href="/user/${event.sender}">${event.sender}</a>` : event.sender}
                     </div >
             <div style="min-width:${(event.sender.toString().length + 2) * 10}px" class="textBox">
                 <div>
