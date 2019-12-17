@@ -1,0 +1,85 @@
+{% extends "index.html" %}
+{% block content %}
+
+<div style="display: grid; justify-content: center;">
+    <div>
+        <h2>
+            Create Room?
+        </h2>
+    </div>
+    <div>
+        <input id="room_name" placeholder="Room Name">
+    </div>
+    <div>
+        <input id="username" placeholder="Username of other person">
+    </div>
+    <button onclick="createRoom()"> Create ROOM?</button>
+    <div>
+        <h2>
+            Join Room?
+        </h2>
+    </div>
+    <div>
+        <input id="room_name_join" placeholder="Room Name">
+    </div>
+    <button onclick="joinRoom()"> Join ROOM?</button>
+</div>
+<script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>
+<script>
+
+    var socket;
+    var sender;
+    var sender_id;
+    var messageCount = 0;
+
+    fetch('/session').then(
+        response => {
+            console.log(response);
+            response.json().then(json => {
+                console.log(json);
+                const jsonDat = json;
+                sender = json.userName;//(Math.random() * 100000).toString(16);
+                sender_id = json.user;
+                console.log("Sender is " + sender);
+
+                // Create socket-io object with websocket transport enforced
+                socket = io();//{ transports: ['polling'] }//{ transports: ['websocket'] }
+
+                events();
+
+                // Connect to socket at a location
+                socket.connect('http://' + document.domain + ':' + location.port, { 'isPrivate': true });
+            })
+        }
+    );
+
+    function createRoom() {
+        socket.emit('create_room', { 'room': document.getElementById('room_name').value, 'username': document.getElementById('username').value })
+    }
+
+    function joinRoom() {
+        socket.emit('join_room', { 'room': document.getElementById('room_name_join').value })
+    }
+
+    function events() {
+        // Socket message Events
+        socket.on('connect', function () {
+            sendMessage(`${sender} Joined the lobby`, "System", -1);
+        });
+
+        socket.on('join_room', () => {
+            window.location.href = `private/${document.getElementById('room_name').value || document.getElementById('room_name_join').value}`
+        })
+
+        socket.on('not_available', () => {
+            alert("Room is occupied or not created. Please select a different room")
+        })
+    }
+
+    function sendMessage(message, send_source = sender, send_id = sender_id) {
+        socket.emit('messagePublic', { message: message, sender: send_source, id: send_id });
+    }
+
+</script>
+
+{% endblock %}
