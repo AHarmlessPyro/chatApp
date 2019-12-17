@@ -4,7 +4,6 @@ from flask_session import sessions
 from . import main
 from .. import login
 from .forms import LoginForm, RegistrationForm
-from ..model import UserModel
 from app.model import UserModel
 from app import db
 
@@ -45,10 +44,10 @@ def loginFunc():
     return render_template('login.html', title='Sign In', form=form)
 
 
-@main.route('/logout')
+@main.route('/logout', methods=['POST'])
 def logout():
     logout_user()
-    return redirect(url_for('main.index'))
+    return redirect(url_for('main.loginFunc'))
 ##---------------------SESSION MANAGEMENT---------------------##
 
 
@@ -94,31 +93,19 @@ def register():
 @login_required
 @main.route('/user/<name>')
 def getUser(name):
-    print(f'Query made for user ${name}')
     userDat = UserModel.query.filter_by(username=name).first()
-    return render_template('UserPage.html', messages=userDat.messages) #, imgLoc="C:\Users\Ninad Sinha\Google Drive\study stuff\CSCI\CSCI 4131\CSCI-4131\chatApp\static\images"
+    if userDat == None:
+        return render_template('errorPage.html', type_of_error="404 Not Found", message=f'{name} was not found')
+    return render_template('UserPage.html', messages=userDat.messages.all(), user=userDat)
 
 
-'''@main.route('/', methods=['GET', 'POST'])
-def index():
-    """Login form to enter a room."""
-    form = LoginForm()
-    if form.validate_on_submit():
-        session['name'] = form.name.data
-        session['room'] = form.room.data
-        return redirect(url_for('.chat'))
-    elif request.method == 'GET':
-        form.name.data = session.get('name', '')
-        form.room.data = session.get('room', '')
-    return render_template('index.html', form=form)
+@login_required
+@main.route('/private')
+def createRoom():
+    render_template('create_room.html')
 
 
-@main.route('/chat')
-def chat():
-    """Chat room. The user's name and room must be stored in
-    the session."""
-    name = session.get('name', '')
-    room = session.get('room', '')
-    if name == '' or room == '':
-        return redirect(url_for('.index'))
-    return render_template('chat.html', name=name, room=room)'''
+@login_required
+@main.route('/private/<rooms>')
+def getRooms():
+    pass

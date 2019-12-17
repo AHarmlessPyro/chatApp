@@ -1,13 +1,26 @@
 {% extends "index.html" %}
 {% block content %}
-<div style="display: grid;justify-items: center;overflow: hidden; grid-template-columns: 25% 75%;">
-    <div id="userInfo">
-        {% if not 'image' in message %}
-        <img src="/static/egg.jpg">
+<div style="display: grid;justify-items: center;overflow: hidden; grid-template-columns: 25% 75%; margin-top: 30px;">
+    <div id="userInfo" style="display: grid;
+    grid-template-rows: auto 80px 80px;">
+        {% if not user.userImage %}
+        <img style="width: 100%;" src="https://raw.githubusercontent.com/AHarmlessPyro/chatApp/master/static/egg.jpg">
+        {% else %} <img style="width: 100%;" src="{{message['image']}}">
         {% endif %}
+        <div>
+            {{user.username}}
+        </div>
+        <div>
+            {{user.email}}
+        </div>
     </div>
-    <div id="messageList">
+    <div id="messageList" style="display: grid; grid-template-columns:33% 1% 66%; width: 100%; padding: 30px;">
+        {% for message in messages%}
+        <div style=" justify-self: flex-start;">{{message.timestamp}}</div>
+        :
+        <div style="justify-self:flex-start;">{{message.body}} </div>
 
+        {% endfor %}
     </div>
 </div>
 <script type="text/javascript" src="https://cdnjs.cloudflare.com/ajax/libs/socket.io/1.3.6/socket.io.min.js"></script>

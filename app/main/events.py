@@ -11,10 +11,12 @@ import re
 import ssl
 
 from .misc import add_clients, get_clients, add_clients, remove_clients, add_rooms
-from ..model import UserModel, MessageModel
+from ..model import UserModel, MessageModel  # ,PrivateRooms
 from .extras import authenticated_only
 
 from app import db
+
+CurrentRooms = []
 
 
 @socketio.on('connect')
@@ -147,6 +149,22 @@ def sendMessagePublic(data):
     else:
         print('Returned true on no additions')
 
+
+@socketio.on('getPrevious')
+def getPreviousMessages(data):
+    messages = MessageModel.query.order_by(
+        MessageModel.id.desc()).offset(data['count']).limit(10).all()
+    #messages = reversed(messages)
+    for message in messages:
+        val = {
+            'message': message.body,
+            'sender': message.author.username,
+            'id': message.user_id,
+            'placement': 'before'
+        }
+        print(f'Sending message {val}')
+        sendMessageSpecific(val)
+
 ##---------------------SESSION MANAGEMENT---------------------##
 
 
@@ -199,3 +217,31 @@ def sendMessageSpecific(data):
         if not attemptURL(f'https://{data["message"]}'):
             if not attemptURL(f'http://{data["message"]}'):
                 emit('newMessage', data)
+
+##---------------------JOIN ROOM---------------------##
+
+
+@authenticated_only
+@socketio.on('create')
+def create_room_New(data):
+    room = data['room']
+    for checkRoom in CurrentRooms:
+        if checkRoom['room'] == room:
+            emit("not-available")
+            return
+    usernames = data['usernames']
+    CurrentRooms.append({'room': room, 'usernames': usernames, 'messages': []})
+    emit('join_room')
+    return
+
+
+@authenticated_only
+@socketio.on('join')
+def join_room_New(data):
+    room = data['room']
+    for checkRoom in CurrentRooms:
+        if checkRoom['room'] == room:
+            emit("join")
+            return
+    emit('not-available')
+    return

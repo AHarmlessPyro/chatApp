@@ -1,4 +1,4 @@
-from app.model import UserModel, MessageModel
+from app.model import UserModel, MessageModel#, PrivateRooms
 from app import db
 from app import create_app, socketio
 
@@ -10,4 +10,4 @@ if __name__ == '__main__':
 
 @app.shell_context_processor
 def make_shell_context():
-    return {'db': db, 'User': UserModel, 'Message': MessageModel}
+    return {'db': db, 'User': UserModel, 'Message': MessageModel}#, 'privacy': PrivateRooms}
